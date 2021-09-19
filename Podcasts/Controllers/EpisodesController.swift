@@ -36,9 +36,84 @@ class EpisodesController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupTableView()
+        setupNavigationBarButtons()
     }
     
+    
     //MARK:- Setups
+    
+    fileprivate func setupNavigationBarButtons() {
+        
+        let savedPodcasts = UserDefaults.standard.savedPodcasts()
+        let hasFavourited = savedPodcasts.firstIndex(where: { $0.trackName == self.podcast?.trackName && $0.artistName == self.podcast?.artistName }) != nil
+        if hasFavourited {
+            navigationItem.rightBarButtonItem = UIBarButtonItem(image: #imageLiteral(resourceName: "35_heart"), style: .plain, target: nil, action: nil)
+            
+        } else {
+            navigationItem.rightBarButtonItems = [
+                UIBarButtonItem(title: "Favorite", style: .plain, target: self, action: #selector(handleSaveFavorite)),
+//                UIBarButtonItem(title: "Fetch", style: .plain, target: self, action: #selector(handleFetchSavedPodcasts))
+            ]
+        }
+    }
+    
+    @objc fileprivate func handleSaveFavorite() {
+        print("Saving info into UD")
+        
+//        var listOfPodcasts = [Podcast]()
+        
+        guard let podcast = self.podcast else { return }
+        
+        
+        
+        //fetch saved podcasts
+//        if let savedPodcastData = UserDefaults.standard.data(forKey: favoritePodcastKey) {
+//            do {
+//                if let savedPodcasts = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(savedPodcastData) as? [Podcast] {
+//                    listOfPodcasts = savedPodcasts
+//                }
+//            } catch {
+//                print(error)
+//            }
+//        }
+        var listOfPodcasts = UserDefaults.standard.savedPodcasts()
+        
+        listOfPodcasts.append(podcast)
+        
+        //transform podcast into data
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: listOfPodcasts, requiringSecureCoding: false)
+            UserDefaults.standard.set(data, forKey: UserDefaults.favoritePodcastKey)
+            showBadgeHighlight()
+            navigationItem.rightBarButtonItem = UIBarButtonItem(image: #imageLiteral(resourceName: "35_heart"), style: .plain, target: nil, action: nil)
+        } catch let error {
+            print("Error encoding podcast", error)
+        }
+    }
+    fileprivate func showBadgeHighlight() {
+        UIApplication.mainTabBarController()?.viewControllers?[1].tabBarItem.badgeValue = "New"
+    }
+
+
+    @objc fileprivate func handleFetchSavedPodcasts() {
+        print("Fetching saved Podcasts from UD")
+        
+        let value = UserDefaults.standard.value(forKey: UserDefaults.favoritePodcastKey) as? String
+        print(value ?? "")
+        
+        //retrieve podcast info
+        
+        guard let data = UserDefaults.standard.data(forKey: UserDefaults.favoritePodcastKey) else { return }
+        do {
+            let savedPodcast = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? [Podcast]
+            savedPodcast?.forEach({ podcast in
+                print(podcast.trackName ?? "")
+            })
+        } catch let error {
+            print("Error decoding", error)
+        }
+        
+    }
     
     fileprivate func setupTableView() {
         let nib = UINib(nibName: "EpisodeCell", bundle: nil)
@@ -75,14 +150,9 @@ class EpisodesController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        
         let episode = self.episodes[indexPath.row]
-        
-        let window = UIApplication.shared.windows.first { $0.isKeyWindow } //UIApplication.shared.keyWindow
-        let playerDetailsView = Bundle.main.loadNibNamed("PlayerDetailsView", owner: self, options: nil)?.first as! PlayerDetailsView
-        
-        
-        playerDetailsView.episode = episode
-        
-        window?.addSubview(playerDetailsView)
+        UIApplication.mainTabBarController()?.maximizedPlayerDetails(episode: episode, playlistEpisodes: self.episodes)
+
     }
 }

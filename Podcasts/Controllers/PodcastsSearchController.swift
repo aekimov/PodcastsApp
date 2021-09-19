@@ -21,8 +21,7 @@ class PodcastsSearchController: UITableViewController, UISearchBarDelegate {
         super.viewDidLoad()
         setupSearchBar()
         setupTableView()
-        //searchBar(searchController.searchBar, textDidChange: "Lex Fridman")
-
+        searchBar(searchController.searchBar, textDidChange: "Lex Fridman")
     }
     
     var timer: Timer?
